@@ -1,66 +1,95 @@
 @import "tailwindcss";
-@plugin "daisyui" { themes: false; }
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-@plugin "daisyui/theme" {
-  name: "mentor";
-  default: true;
-  color-scheme: light;
-  --color-base-100: #fffaf1;
-  --color-base-200: #f7efdf;
-  --color-base-300: #eadfc8;
-  --color-base-content: #15261f;
-  --color-primary: #0f3d33;
-  --color-primary-content: #fffaf1;
-  --color-secondary: #f4b63f;
-  --color-secondary-content: #2a1b00;
-  --color-accent: #e4572e;
-  --color-accent-content: #ffffff;
-  --color-neutral: #15261f;
-  --color-neutral-content: #fffaf1;
-  --color-info: #2f80c8;
-  --color-info-content: #ffffff;
-  --color-success: #2e9e6b;
-  --color-success-content: #ffffff;
-  --color-warning: #f4b63f;
-  --color-warning-content: #2a1b00;
-  --color-error: #d6452f;
-  --color-error-content: #ffffff;
-  --radius-selector: 9999px;
-  --radius-field: 0.9rem;
-  --radius-box: 1.25rem;
-}
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --font-display: var(--font-fraunces), Georgia, serif;
   --font-sans: var(--font-jakarta), system-ui, sans-serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-coral: var(--coral);
+  --color-success: var(--success);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
 }
 
-body {
-  background-color: var(--color-base-100);
-  background-image: radial-gradient(rgba(15, 61, 51, 0.06) 1px, transparent 1px);
-  background-size: 22px 22px;
+:root {
+  --radius: 1rem;
+  --background: #fffaf1;
+  --foreground: #15261f;
+  --card: #ffffff;
+  --card-foreground: #15261f;
+  --popover: #fffaf1;
+  --popover-foreground: #15261f;
+  --primary: #0f3d33;
+  --primary-foreground: #fffaf1;
+  --secondary: #f4b63f;
+  --secondary-foreground: #2a1b00;
+  --muted: #f7efdf;
+  --muted-foreground: #5b6b63;
+  --accent: #f7efdf;
+  --accent-foreground: #0f3d33;
+  --destructive: #d6452f;
+  --border: #eadfc8;
+  --input: #eadfc8;
+  --ring: #0f3d33;
+  --coral: #e4572e;
+  --success: #2e9e6b;
+}
+
+
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    background-image: radial-gradient(rgba(15, 61, 51, 0.06) 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
 }
 
 @layer components {
-  .container-x { @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8; }
-  .section { @apply py-20 lg:py-28; }
+  .container-x {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+  .section {
+    @apply py-20 lg:py-28;
+  }
   .eyebrow {
-    @apply inline-flex items-center gap-2 rounded-full border border-primary/20 bg-base-200
-           px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-primary;
+    @apply inline-flex items-center gap-2 rounded-full border border-primary/20 bg-muted px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-primary;
   }
-  /* সব section-এর heading একই style */
-  .section-title { @apply font-display text-4xl font-semibold leading-tight text-primary sm:text-5xl; }
-  .section-sub { @apply mt-4 max-w-2xl text-base leading-relaxed text-base-content/70; }
-  /* সব জায়গায় একই button style */
-  .btn-brand {
-    @apply btn rounded-full border-0 bg-primary px-7 text-primary-content shadow-[0_6px_0_0_#082a22]
-           transition-all hover:translate-y-[2px] hover:bg-primary hover:shadow-[0_4px_0_0_#082a22];
+  /* sob section er heading ek style */
+  .section-title {
+    @apply font-display text-4xl font-semibold leading-tight text-primary sm:text-5xl;
   }
-  .btn-saffron {
-    @apply btn rounded-full border-0 bg-secondary px-7 text-secondary-content shadow-[0_6px_0_0_#c48a14]
-           transition-all hover:translate-y-[2px] hover:bg-secondary hover:shadow-[0_4px_0_0_#c48a14];
+  .section-sub {
+    @apply mt-4 max-w-2xl text-base leading-relaxed text-foreground/70;
   }
   .paper-card {
-    @apply rounded-3xl border border-base-300 bg-white/70 shadow-[0_10px_30px_-12px_rgba(15,61,51,0.25)] backdrop-blur;
+    @apply rounded-3xl border border-border bg-white/70 shadow-[0_10px_30px_-12px_rgba(15,61,51,0.25)] backdrop-blur;
   }
 }
