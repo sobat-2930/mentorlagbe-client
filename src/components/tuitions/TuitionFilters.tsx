@@ -1,5 +1,4 @@
 "use client";
-import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Search, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,11 +11,7 @@ const selectClass =
 export default function TuitionFilters({ subjects, classLevels, modes }: Props) {
   const router = useRouter();
   const sp = useSearchParams();
-  const [search, setSearch] = useState(sp.get("search") ?? "");
-
-  useEffect(() => {
-    setSearch(sp.get("search") ?? "");
-  }, [sp]);
+  const urlSearch = sp.get("search") ?? "";
 
   const update = (key: string, value: string) => {
     const p = new URLSearchParams(sp.toString());
@@ -31,17 +26,20 @@ export default function TuitionFilters({ subjects, classLevels, modes }: Props) 
 
   return (
     <div className="paper-card p-5 sm:p-6">
+      {/* key change hole input URL er value diye reset hoy, tai useEffect lage na */}
       <form
+        key={urlSearch}
         onSubmit={(e) => {
           e.preventDefault();
-          update("search", search.trim());
+          const value = new FormData(e.currentTarget).get("search");
+          update("search", String(value ?? "").trim());
         }}
         className="flex items-center gap-2 rounded-full border border-border bg-white p-1.5 pl-5"
       >
         <Search size={18} className="shrink-0 text-foreground/40" />
         <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          name="search"
+          defaultValue={urlSearch}
           placeholder="Search by title or subject…"
           className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-foreground/40"
         />
