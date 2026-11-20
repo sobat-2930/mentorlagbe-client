@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
 import { Toaster } from "sonner";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
+import SiteShell from "@/components/SiteShell";
 import "./globals.css";
 
 const fraunces = Fraunces({ subsets: ["latin"], variable: "--font-fraunces" });
@@ -15,11 +14,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="mentor">
+    <html lang="en">
       <body className={`${fraunces.variable} ${jakarta.variable} font-sans antialiased`}>
-        <Navbar />
-        <main className="min-h-[70vh]">{children}</main>
-        <Footer />
+        <SiteShell>{children}</SiteShell>
         <Toaster richColors position="top-right" />
       </body>
     </html>
