@@ -1,36 +1,61 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+<div align="center">
 
-## Getting Started
+# 🎓 MentorLagbe
 
-First, run the development server:
+**Smart Tuition & Mentorship Platform**
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Find verified tutors by subject, class level, mode and budget.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+</div>
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 📌 Project Name
+**MentorLagbe** (Client)
 
-## Learn More
+## 🎯 Purpose
+MentorLagbe connects **Tutors** who offer tuition batches or 1-on-1 mentorship with **Students** looking for personalized guidance, while **Admins** moderate listings, users and subscription payments.
 
-To learn more about Next.js, take a look at the following resources:
+Students and parents can find verified tutors in one place, and tutors get a structured platform to showcase their batches and manage enrollments.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🔗 Live URL
+**https://YOUR-CLIENT.vercel.app**
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Server API: https://YOUR-SERVER.vercel.app
 
-## Deploy on Vercel
+## 🔑 Admin Credentials
+| Role | Email | Password |
+|---|---|---|
+| **Admin** | `admin@mentorlagbe.com` | `Admin@123` |
+| Tutor | `tutor@mentorlagbe.com` | `Tutor@123` |
+| Student | `student@mentorlagbe.com` | `Student@123` |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## ✨ Key Features
+- **Role-based authentication** for Student, Tutor and Admin (BetterAuth + JWT)
+- **Browse Tuitions** with server-side search, filters (subject, class level, mode) and pagination
+- **Apply for tuitions** (students only) with duplicate application prevention
+- **Student dashboard:** stats, my applications, cancel pending applications
+- **Tutor dashboard:** post tuition with ImgBB banner upload, full CRUD, active/closed toggle, accept or reject applicants
+- **Free plan limit:** free tutors can post 2 tuitions, Pro tutors post unlimited
+- **Admin dashboard:** platform stats, user role management, tuition approval, transaction history
+- **Stripe Checkout** for Pro plans (Tutor $15, Student $10)
+- **Update profile** with ImgBB photo upload
+- Responsive design, collapsible dashboard sidebar, loading skeletons, custom 404 and error pages
+- Toast notifications for every action
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 📦 NPM Packages Used
+| Package | Use |
+|---|---|
+| `next`, `react`, `react-dom` | Framework (Next.js App Router) |
+| `typescript` | Type safety |
+| `tailwindcss`, `@tailwindcss/postcss` | Styling |
+| `shadcn` | UI components |
+| `class-variance-authority`, `clsx`, `tailwind-merge` | Component styling utilities |
+| `better-auth` | Authentication client |
+| `framer-motion` | Animations |
+| `lucide-react`, `react-icons` | Icons |
+| `sonner` | Toast notifications |
+
+## 🛠️ Repositories
+- Client: 
+- Server: 
