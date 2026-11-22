@@ -27,15 +27,15 @@ export default function Footer() {
           </p>
           <div className="mt-6 flex gap-3">
             {socials.map((s) => (
-              <a
-                key={s.label}
-                href={s.href}
-                aria-label={s.label}
-                className="grid h-10 w-10 place-items-center rounded-full border border-white/20 transition hover:bg-secondary hover:text-secondary-foreground"
-              >
-                {s.icon}
-              </a>
-            ))}
+  <button
+    key={s.label}
+    type="button"
+    aria-label={s.label}
+    className="grid h-10 w-10 place-items-center rounded-full border border-white/20 transition hover:bg-secondary hover:text-secondary-foreground"
+  >
+    {s.icon}
+  </button>
+))}
           </div>
         </div>
 
