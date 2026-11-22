@@ -1,24 +1,28 @@
 "use client";
-import { useMemo } from "react";
 import Link from "next/link";
 import { ArrowRight, BadgeDollarSign, CircleCheck, GraduationCap, Hourglass, Users } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
 import PageHeader from "@/components/dashboard/PageHeader";
-import { formatDate, mockPayments, mockUsers, seedAdminTuitions } from "@/lib/dashboard-data";
+import { LoadError, PageSkeleton } from "@/components/dashboard/DataState";
+import { useApi } from "@/hooks/useApi";
+import { formatDate } from "@/lib/format";
+import type { AdminStats, Payment } from "@/lib/types";
 
 export default function AdminOverview() {
-  const tuitions = useMemo(() => seedAdminTuitions(), []);
-  const pending = tuitions.filter((t) => t.approvalStatus === "pending").length;
-  const approved = tuitions.filter((t) => t.approvalStatus === "approved").length;
-  const rejected = tuitions.filter((t) => t.approvalStatus === "rejected").length;
-  const revenue = mockPayments.reduce((sum, p) => sum + p.amount, 0);
-  const tutors = mockUsers.filter((u) => u.role === "tutor").length;
-  const total = tuitions.length;
+  const s = useApi<AdminStats>("/api/admin/stats");
+  const p = useApi<Payment[]>("/api/admin/payments");
 
+  if (s.loading || p.loading) return <PageSkeleton />;
+  if (s.error || p.error || !s.data || !p.data) {
+    return <LoadError message={s.error || p.error} onRetry={() => { s.reload(); p.reload(); }} />;
+  }
+
+  const stats = s.data;
+  const total = stats.totalTuitions || 1;
   const bars = [
-    { label: "Approved", value: approved, color: "bg-success" },
-    { label: "Pending", value: pending, color: "bg-secondary" },
-    { label: "Rejected", value: rejected, color: "bg-destructive" },
+    { label: "Approved", value: stats.approvedTuitions, color: "bg-success" },
+    { label: "Pending", value: stats.pendingTuitions, color: "bg-secondary" },
+    { label: "Rejected", value: stats.rejectedTuitions, color: "bg-destructive" },
   ];
 
   return (
@@ -26,11 +30,11 @@ export default function AdminOverview() {
       <PageHeader title="Platform overview" subtitle="Live snapshot of users, tuitions and revenue." />
 
       <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-5">
-        <StatCard label="Total Users" value={mockUsers.length} icon={Users} tone="primary" />
-        <StatCard label="Total Tutors" value={tutors} icon={GraduationCap} tone="coral" />
-        <StatCard label="Pending Tuitions" value={pending} icon={Hourglass} tone="saffron" />
-        <StatCard label="Approved Tuitions" value={approved} icon={CircleCheck} tone="success" />
-        <StatCard label="Stripe Revenue" value={`$${revenue}`} icon={BadgeDollarSign} tone="primary" />
+        <StatCard label="Total Users" value={stats.totalUsers} icon={Users} tone="primary" />
+        <StatCard label="Total Tutors" value={stats.totalTutors} icon={GraduationCap} tone="coral" />
+        <StatCard label="Pending Tuitions" value={stats.pendingTuitions} icon={Hourglass} tone="saffron" />
+        <StatCard label="Approved Tuitions" value={stats.approvedTuitions} icon={CircleCheck} tone="success" />
+        <StatCard label="Stripe Revenue" value={`$${stats.totalRevenue}`} icon={BadgeDollarSign} tone="primary" />
       </div>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
@@ -44,9 +48,7 @@ export default function AdminOverview() {
           <ul className="mt-5 space-y-3 text-sm">
             {bars.map((b) => (
               <li key={b.label} className="flex items-center justify-between">
-                <span className="flex items-center gap-2.5">
-                  <span className={`h-3 w-3 rounded-full ${b.color}`} /> {b.label}
-                </span>
+                <span className="flex items-center gap-2.5"><span className={`h-3 w-3 rounded-full ${b.color}`} /> {b.label}</span>
                 <span className="font-bold text-primary">{b.value}</span>
               </li>
             ))}
@@ -63,17 +65,21 @@ export default function AdminOverview() {
               View all <ArrowRight size={14} />
             </Link>
           </div>
-          <ul className="divide-y divide-border">
-            {[...mockPayments].reverse().slice(0, 4).map((p) => (
-              <li key={p._id} className="flex items-center justify-between gap-3 py-3.5">
-                <div className="min-w-0">
-                  <p className="truncate font-semibold text-primary">{p.userName}</p>
-                  <p className="text-xs text-foreground/50">{p.planName} · {formatDate(p.paidAt)}</p>
-                </div>
-                <span className="font-display text-lg text-success">+${p.amount}</span>
-              </li>
-            ))}
-          </ul>
+          {p.data.length === 0 ? (
+            <p className="py-8 text-center text-sm text-foreground/60">No transactions yet.</p>
+          ) : (
+            <ul className="divide-y divide-border">
+              {p.data.slice(0, 4).map((x) => (
+                <li key={x._id} className="flex items-center justify-between gap-3 py-3.5">
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-primary">{x.userName}</p>
+                    <p className="text-xs text-foreground/50">{x.planName} · {formatDate(x.paidAt)}</p>
+                  </div>
+                  <span className="font-display text-lg text-success">+${x.amount}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
     </>

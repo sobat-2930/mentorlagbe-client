@@ -3,31 +3,41 @@ import { useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { CalendarDays, ClipboardList, Mail, Trash2, UserRound, Wallet } from "lucide-react";
-import { useDashboardUser } from "@/components/dashboard/user-context";
 import PageHeader from "@/components/dashboard/PageHeader";
 import FilterTabs from "@/components/dashboard/FilterTabs";
 import StatusBadge from "@/components/dashboard/StatusBadge";
 import EmptyState from "@/components/dashboard/EmptyState";
 import ConfirmModal from "@/components/dashboard/ConfirmModal";
+import { LoadError, PageSkeleton } from "@/components/dashboard/DataState";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { formatDate, seedStudentApplications, type Application } from "@/lib/dashboard-data";
+import { useApi } from "@/hooks/useApi";
+import { api } from "@/lib/api";
+import { formatDate } from "@/lib/format";
+import type { Application } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export default function MyApplicationsPage() {
-  const user = useDashboardUser();
-  const [apps, setApps] = useState<Application[]>(() => seedStudentApplications(user));
+  const { data: apps, setData, loading, error, reload } = useApi<Application[]>("/api/applications/mine");
   const [filter, setFilter] = useState("all");
   const [toCancel, setToCancel] = useState<Application | null>(null);
+
+  if (loading) return <PageSkeleton />;
+  if (error || !apps) return <LoadError message={error} onRetry={reload} />;
 
   const count = (s: string) => apps.filter((a) => a.status === s).length;
   const visible = filter === "all" ? apps : apps.filter((a) => a.status === filter);
 
-  const confirmCancel = () => {
+  const confirmCancel = async () => {
     if (!toCancel) return;
-    // TODO (backend phase): DELETE /api/applications/:id
-    setApps((prev) => prev.filter((a) => a._id !== toCancel._id));
-    toast.success("Application cancelled");
-    setToCancel(null);
+    try {
+      await api(`/api/applications/${toCancel._id}`, { method: "DELETE" });
+      setData((prev) => (prev ? prev.filter((a) => a._id !== toCancel._id) : prev));
+      toast.success("Application cancelled");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not cancel application");
+    } finally {
+      setToCancel(null);
+    }
   };
 
   return (

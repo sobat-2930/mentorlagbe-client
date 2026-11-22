@@ -1,6 +1,4 @@
 @import "tailwindcss";
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -59,8 +57,6 @@
   --success: #2e9e6b;
 }
 
-
-
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -82,7 +78,6 @@
   .eyebrow {
     @apply inline-flex items-center gap-2 rounded-full border border-primary/20 bg-muted px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-primary;
   }
-  /* sob section er heading ek style */
   .section-title {
     @apply font-display text-4xl font-semibold leading-tight text-primary sm:text-5xl;
   }

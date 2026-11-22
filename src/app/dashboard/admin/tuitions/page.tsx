@@ -6,22 +6,33 @@ import PageHeader from "@/components/dashboard/PageHeader";
 import FilterTabs from "@/components/dashboard/FilterTabs";
 import StatusBadge from "@/components/dashboard/StatusBadge";
 import EmptyState from "@/components/dashboard/EmptyState";
+import { LoadError, PageSkeleton } from "@/components/dashboard/DataState";
 import { Button } from "@/components/ui/button";
-import { formatDate, seedAdminTuitions } from "@/lib/dashboard-data";
-import { subjectGradients, type Tuition } from "@/lib/mock-tuitions";
+import { useApi } from "@/hooks/useApi";
+import { api } from "@/lib/api";
+import { formatDate } from "@/lib/format";
+import { subjectGradients } from "@/lib/tuitions";
+import type { Tuition } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export default function AdminTuitionsPage() {
-  const [tuitions, setTuitions] = useState<Tuition[]>(() => seedAdminTuitions());
+  const { data: tuitions, setData, loading, error, reload } = useApi<Tuition[]>("/api/admin/tuitions");
   const [filter, setFilter] = useState("pending");
+
+  if (loading) return <PageSkeleton />;
+  if (error || !tuitions) return <LoadError message={error} onRetry={reload} />;
 
   const count = (s: string) => tuitions.filter((t) => t.approvalStatus === s).length;
   const visible = filter === "all" ? tuitions : tuitions.filter((t) => t.approvalStatus === filter);
 
-  const decide = (id: string, approvalStatus: "approved" | "rejected") => {
-    // TODO (backend phase): PATCH /api/admin/tuitions/:id { approvalStatus } (verifyAdmin)
-    setTuitions((prev) => prev.map((t) => (t._id === id ? { ...t, approvalStatus } : t)));
-    toast.success(`Tuition ${approvalStatus}`);
+  const decide = async (id: string, approvalStatus: "approved" | "rejected") => {
+    try {
+      await api(`/api/admin/tuitions/${id}/approval`, { method: "PATCH", body: { approvalStatus } });
+      setData((prev) => (prev ? prev.map((t) => (t._id === id ? { ...t, approvalStatus } : t)) : prev));
+      toast.success(`Tuition ${approvalStatus}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not update tuition");
+    }
   };
 
   return (

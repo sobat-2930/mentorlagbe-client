@@ -5,17 +5,18 @@ import { Crown, LoaderCircle, Mail } from "lucide-react";
 import { useDashboardUser } from "@/components/dashboard/user-context";
 import PageHeader from "@/components/dashboard/PageHeader";
 import ImageUploader from "@/components/dashboard/ImageUploader";
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { updateDemoUser } from "@/lib/demo-auth";
+import { useUser } from "@/hooks/useUser";
+import { api } from "@/lib/api";
 
 type Errors = Partial<Record<"name" | "phone" | "bio", string>>;
 
 export default function ProfilePage() {
   const user = useDashboardUser();
+  const { refetch } = useUser();
   const [form, setForm] = useState({
     name: user.name,
     phone: user.phone ?? "",
@@ -38,17 +39,20 @@ export default function ProfilePage() {
     ev.preventDefault();
     if (!validate()) return toast.error("Please fix the highlighted fields");
     setLoading(true);
-    // TODO (backend phase): PATCH /api/users/me
-    await new Promise((r) => setTimeout(r, 600));
-    updateDemoUser({
-      name: form.name.trim(),
-      phone: form.phone.trim(),
-      bio: form.bio.trim(),
-      // blob: preview reload er por nosto hoy, tai ImgBB url/ pasted url hole-i save kori
-      image: form.image.startsWith("blob:") ? user.image : form.image || undefined,
-    });
-    setLoading(false);
-    toast.success("Profile updated successfully");
+    try {
+      // blob: preview hole (ImgBB key nai) purono image ei thake
+      const image = form.image.startsWith("blob:") ? user.image ?? "" : form.image.trim();
+      await api("/api/me", {
+        method: "PATCH",
+        body: { name: form.name.trim(), phone: form.phone.trim(), bio: form.bio.trim(), image },
+      });
+      await refetch();
+      toast.success("Profile updated successfully");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not update profile");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -59,14 +63,13 @@ export default function ProfilePage() {
         <div className="paper-card flex h-fit flex-col items-center p-8 text-center">
           <ImageUploader variant="avatar" value={form.image} onChange={(url) => setForm({ ...form, image: url })} label="Upload photo" />
           <h3 className="mt-5 font-display text-2xl text-primary">{user.name}</h3>
-          <p className="mt-1 flex items-center gap-2 text-sm text-foreground/60">
-            <Mail size={14} /> {user.email}
+          <p className="mt-1 flex items-center gap-2 break-all text-sm text-foreground/60">
+            <Mail size={14} className="shrink-0" /> {user.email}
           </p>
           <div className="mt-4 flex items-center gap-2">
-           
             <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-bold capitalize text-primary">
-  {user.role}
-</span>
+              {user.role}
+            </span>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1 text-xs font-bold uppercase text-secondary-foreground">
               {user.plan === "pro" && <Crown size={12} />} {user.plan}
             </span>
@@ -105,7 +108,8 @@ export default function ProfilePage() {
 
           <div className="space-y-1.5">
             <Label htmlFor="bio">Bio</Label>
-            <Textarea id="bio" rows={5} value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} placeholder="Tell us a little about yourself…" aria-invalid={!!errors.bio} className="rounded-xl bg-white" />
+            <Textarea id="bio" rows={5} value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })}
+              placeholder="Tell us a little about yourself…" aria-invalid={!!errors.bio} className="rounded-xl bg-white" />
             <div className="flex justify-between text-xs">
               <span className="text-destructive">{errors.bio}</span>
               <span className="text-foreground/50">{form.bio.length}/300</span>

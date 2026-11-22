@@ -5,7 +5,8 @@ import { useState } from "react";
 import { GraduationCap, Menu, X } from "lucide-react";
 import { toast } from "sonner";
 import { useUser } from "@/hooks/useUser";
-import { setDemoUser } from "@/lib/demo-auth";
+import { signOut } from "@/lib/auth-client";
+import { clearJwt } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -23,9 +24,9 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
   const { user } = useUser();
 
-  const handleSignOut = () => {
-    // TODO (backend phase): BetterAuth signOut()
-    setDemoUser(null);
+  const handleSignOut = async () => {
+    await signOut();
+    clearJwt();
     toast.success("Signed out successfully");
     setOpen(false);
     router.push("/");
@@ -50,9 +51,7 @@ export default function Navbar() {
               href={l.href}
               className={cn(
                 "rounded-full px-4 py-2 text-sm font-semibold transition",
-                pathname === l.href
-                  ? "bg-primary text-primary-foreground"
-                  : "text-foreground/75 hover:bg-muted"
+                pathname === l.href ? "bg-primary text-primary-foreground" : "text-foreground/75 hover:bg-muted"
               )}
             >
               {l.label}
@@ -76,16 +75,9 @@ export default function Navbar() {
               </button>
               <div className="invisible absolute right-0 top-full z-10 w-56 pt-3 opacity-0 transition group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100">
                 <div className="rounded-2xl border border-border bg-background p-2 shadow-xl">
-                  <Link href="/dashboard" className="block rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-muted">
-                    Dashboard
-                  </Link>
-                  <Link href="/dashboard/profile" className="block rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-muted">
-                    Update Profile
-                  </Link>
-                  <button
-                    onClick={handleSignOut}
-                    className="block w-full rounded-xl px-4 py-2.5 text-left text-sm font-medium text-destructive hover:bg-muted"
-                  >
+                  <Link href="/dashboard" className="block rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-muted">Dashboard</Link>
+                  <Link href="/dashboard/profile" className="block rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-muted">Update Profile</Link>
+                  <button onClick={handleSignOut} className="block w-full rounded-xl px-4 py-2.5 text-left text-sm font-medium text-destructive hover:bg-muted">
                     Sign Out
                   </button>
                 </div>
@@ -93,10 +85,7 @@ export default function Navbar() {
             </div>
           ) : (
             <>
-              <Link
-                href="/sign-in"
-                className={cn(buttonVariants({ variant: "ghost" }), "h-11 rounded-full px-5 font-semibold")}
-              >
+              <Link href="/sign-in" className={cn(buttonVariants({ variant: "ghost" }), "h-11 rounded-full px-5 font-semibold")}>
                 Sign In
               </Link>
               <Link href="/sign-up" className={cn(buttonVariants({ variant: "saffron" }), "h-11 px-6")}>
@@ -119,22 +108,13 @@ export default function Navbar() {
         <div className="border-t border-border bg-background lg:hidden">
           <div className="container-x flex flex-col gap-1 py-4">
             {links.map((l) => (
-              <Link
-                key={l.href}
-                href={l.href}
-                onClick={() => setOpen(false)}
-                className="rounded-xl px-4 py-3 font-semibold hover:bg-muted"
-              >
+              <Link key={l.href} href={l.href} onClick={() => setOpen(false)} className="rounded-xl px-4 py-3 font-semibold hover:bg-muted">
                 {l.label}
               </Link>
             ))}
 
             {user && (
-              <Link
-                href="/dashboard/profile"
-                onClick={() => setOpen(false)}
-                className="rounded-xl px-4 py-3 font-semibold hover:bg-muted"
-              >
+              <Link href="/dashboard/profile" onClick={() => setOpen(false)} className="rounded-xl px-4 py-3 font-semibold hover:bg-muted">
                 Update Profile
               </Link>
             )}
@@ -142,31 +122,17 @@ export default function Navbar() {
             <div className="mt-3 flex gap-3">
               {user ? (
                 <>
-                  <Link
-                    href="/dashboard"
-                    onClick={() => setOpen(false)}
-                    className={cn(buttonVariants({ variant: "brand" }), "h-11 flex-1")}
-                  >
+                  <Link href="/dashboard" onClick={() => setOpen(false)} className={cn(buttonVariants({ variant: "brand" }), "h-11 flex-1")}>
                     Dashboard
                   </Link>
-                  <Button variant="outline" onClick={handleSignOut} className="h-11 flex-1 rounded-full">
-                    Sign Out
-                  </Button>
+                  <Button variant="outline" onClick={handleSignOut} className="h-11 flex-1 rounded-full">Sign Out</Button>
                 </>
               ) : (
                 <>
-                  <Link
-                    href="/sign-in"
-                    onClick={() => setOpen(false)}
-                    className={cn(buttonVariants({ variant: "outline" }), "h-11 flex-1 rounded-full")}
-                  >
+                  <Link href="/sign-in" onClick={() => setOpen(false)} className={cn(buttonVariants({ variant: "outline" }), "h-11 flex-1 rounded-full")}>
                     Sign In
                   </Link>
-                  <Link
-                    href="/sign-up"
-                    onClick={() => setOpen(false)}
-                    className={cn(buttonVariants({ variant: "saffron" }), "h-11 flex-1")}
-                  >
+                  <Link href="/sign-up" onClick={() => setOpen(false)} className={cn(buttonVariants({ variant: "saffron" }), "h-11 flex-1")}>
                     Sign Up
                   </Link>
                 </>

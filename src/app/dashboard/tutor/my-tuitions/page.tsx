@@ -3,16 +3,18 @@ import { useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { BookOpen, Pencil, Trash2 } from "lucide-react";
-import { useDashboardUser } from "@/components/dashboard/user-context";
 import PageHeader from "@/components/dashboard/PageHeader";
 import StatusBadge from "@/components/dashboard/StatusBadge";
 import EmptyState from "@/components/dashboard/EmptyState";
 import ConfirmModal from "@/components/dashboard/ConfirmModal";
 import Modal from "@/components/dashboard/Modal";
 import TuitionForm, { type TuitionFormValues } from "@/components/dashboard/TuitionForm";
+import { LoadError, PageSkeleton } from "@/components/dashboard/DataState";
 import { buttonVariants } from "@/components/ui/button";
-import { seedTutorTuitions } from "@/lib/dashboard-data";
-import { subjectGradients, type Tuition } from "@/lib/mock-tuitions";
+import { useApi } from "@/hooks/useApi";
+import { api } from "@/lib/api";
+import { subjectGradients } from "@/lib/tuitions";
+import type { Tuition } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const toForm = (t: Tuition): TuitionFormValues => ({
@@ -28,65 +30,63 @@ const toForm = (t: Tuition): TuitionFormValues => ({
 });
 
 export default function MyTuitionsPage() {
-  const user = useDashboardUser();
-  const [tuitions, setTuitions] = useState<Tuition[]>(() => seedTutorTuitions(user));
+  const { data: tuitions, setData, loading, error, reload } = useApi<Tuition[]>("/api/tutor/tuitions");
   const [editing, setEditing] = useState<Tuition | null>(null);
   const [deleting, setDeleting] = useState<Tuition | null>(null);
 
-  const toggleActive = (id: string) => {
-    // TODO (backend phase): PATCH /api/tuitions/:id/status
-    setTuitions((prev) => prev.map((t) => (t._id === id ? { ...t, isActive: !t.isActive } : t)));
-    const t = tuitions.find((x) => x._id === id);
-    toast.success(t?.isActive ? "Tuition closed" : "Tuition is active again");
+  if (loading) return <PageSkeleton />;
+  if (error || !tuitions) return <LoadError message={error} onRetry={reload} />;
+
+  const toggleActive = async (t: Tuition) => {
+    try {
+      const r = await api<{ isActive: boolean }>(`/api/tutor/tuitions/${t._id}/status`, {
+        method: "PATCH",
+        body: { isActive: !t.isActive },
+      });
+      setData((prev) => (prev ? prev.map((x) => (x._id === t._id ? { ...x, isActive: r.isActive } : x)) : prev));
+      toast.success(r.isActive ? "Tuition is active again" : "Tuition closed");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not update status");
+    }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!deleting) return;
-    // TODO (backend phase): DELETE /api/tuitions/:id
-    setTuitions((prev) => prev.filter((t) => t._id !== deleting._id));
-    toast.success("Tuition deleted");
-    setDeleting(null);
+    try {
+      await api(`/api/tutor/tuitions/${deleting._id}`, { method: "DELETE" });
+      setData((prev) => (prev ? prev.filter((x) => x._id !== deleting._id) : prev));
+      toast.success("Tuition deleted");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not delete tuition");
+    } finally {
+      setDeleting(null);
+    }
   };
 
   const handleEdit = async (v: TuitionFormValues) => {
     if (!editing) return;
-    // TODO (backend phase): PUT /api/tuitions/:id
-    await new Promise((r) => setTimeout(r, 600));
-    setTuitions((prev) =>
-      prev.map((t) =>
-        t._id === editing._id
-          ? {
-              ...t,
-              title: v.title.trim(),
-              subject: v.subject,
-              classLevel: v.classLevel,
-              mode: v.mode as "Online" | "Offline",
-              location: v.location.trim(),
-              monthlyFee: Number(v.monthlyFee),
-              daysPerWeek: Number(v.daysPerWeek),
-              description: v.description.trim(),
-              bannerImage: v.bannerImage || undefined,
-            }
-          : t
-      )
-    );
-    toast.success("Tuition updated");
-    setEditing(null);
+    try {
+      const updated = await api<Tuition>(`/api/tutor/tuitions/${editing._id}`, {
+        method: "PUT",
+        body: { ...v, bannerImage: v.bannerImage.startsWith("blob:") ? editing.bannerImage ?? "" : v.bannerImage },
+      });
+      setData((prev) => (prev ? prev.map((x) => (x._id === updated._id ? updated : x)) : prev));
+      toast.success("Tuition updated");
+      setEditing(null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not update tuition");
+    }
   };
 
   return (
     <>
       <PageHeader title="My Tuitions" subtitle="Edit, close or delete the tuitions you have posted.">
-        <Link href="/dashboard/tutor/post-tuition" className={cn(buttonVariants({ variant: "brand" }), "h-11 px-6")}>
-          Post New
-        </Link>
+        <Link href="/dashboard/tutor/post-tuition" className={cn(buttonVariants({ variant: "brand" }), "h-11 px-6")}>Post New</Link>
       </PageHeader>
 
       {tuitions.length === 0 ? (
         <EmptyState icon={BookOpen} title="No tuitions yet" text="Post your first tuition to start receiving applicants.">
-          <Link href="/dashboard/tutor/post-tuition" className={cn(buttonVariants({ variant: "brand" }), "h-11 px-6")}>
-            Post a Tuition
-          </Link>
+          <Link href="/dashboard/tutor/post-tuition" className={cn(buttonVariants({ variant: "brand" }), "h-11 px-6")}>Post a Tuition</Link>
         </EmptyState>
       ) : (
         <div className="space-y-4">
@@ -114,7 +114,7 @@ export default function MyTuitionsPage() {
                   role="switch"
                   aria-checked={t.isActive}
                   aria-label="Toggle active status"
-                  onClick={() => toggleActive(t._id)}
+                  onClick={() => toggleActive(t)}
                   className={cn("relative h-7 w-12 shrink-0 rounded-full transition", t.isActive ? "bg-success" : "bg-foreground/25")}
                 >
                   <span className={cn("absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all", t.isActive ? "left-6" : "left-1")} />

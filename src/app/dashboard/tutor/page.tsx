@@ -1,29 +1,38 @@
 "use client";
-import { useMemo } from "react";
 import Link from "next/link";
 import { ArrowRight, BookOpen, CircleCheck, Crown, Users } from "lucide-react";
 import { useDashboardUser } from "@/components/dashboard/user-context";
 import StatCard from "@/components/dashboard/StatCard";
 import PageHeader from "@/components/dashboard/PageHeader";
 import StatusBadge from "@/components/dashboard/StatusBadge";
+import { LoadError, PageSkeleton } from "@/components/dashboard/DataState";
 import { buttonVariants } from "@/components/ui/button";
-import { formatDate, seedApplicants, seedTutorTuitions } from "@/lib/dashboard-data";
+import { useApi } from "@/hooks/useApi";
+import { formatDate } from "@/lib/format";
+import type { Application, Tuition } from "@/lib/types";
 import { cn } from "@/lib/utils";
+
+const FREE_LIMIT = 2;
 
 export default function TutorOverview() {
   const user = useDashboardUser();
-  const tuitions = useMemo(() => seedTutorTuitions(user), [user]);
-  const applicants = useMemo(() => seedApplicants(tuitions), [tuitions]);
-  const live = tuitions.filter((t) => t.approvalStatus === "approved" && t.isActive).length;
-  const pending = applicants.filter((a) => a.status === "pending");
-  const limit = 2;
+  const t = useApi<Tuition[]>("/api/tutor/tuitions");
+  const a = useApi<Application[]>("/api/tutor/applicants");
+
+  if (t.loading || a.loading) return <PageSkeleton />;
+  if (t.error || a.error || !t.data || !a.data) {
+    return <LoadError message={t.error || a.error} onRetry={() => { t.reload(); a.reload(); }} />;
+  }
+
+  const tuitions = t.data;
+  const applicants = a.data;
+  const live = tuitions.filter((x) => x.approvalStatus === "approved" && x.isActive).length;
+  const pending = applicants.filter((x) => x.status === "pending");
 
   return (
     <>
       <PageHeader title={`Hello, ${user.name.split(" ")[0]}`} subtitle="Manage your tuitions and applicants from one place.">
-        <Link href="/dashboard/tutor/post-tuition" className={cn(buttonVariants({ variant: "brand" }), "h-11 px-6")}>
-          Post a Tuition
-        </Link>
+        <Link href="/dashboard/tutor/post-tuition" className={cn(buttonVariants({ variant: "brand" }), "h-11 px-6")}>Post a Tuition</Link>
       </PageHeader>
 
       <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
@@ -45,13 +54,13 @@ export default function TutorOverview() {
             <p className="py-8 text-center text-sm text-foreground/60">No pending applicants right now.</p>
           ) : (
             <ul className="divide-y divide-border">
-              {pending.slice(0, 4).map((a) => (
-                <li key={a._id} className="flex flex-wrap items-center justify-between gap-3 py-4">
+              {pending.slice(0, 4).map((x) => (
+                <li key={x._id} className="flex flex-wrap items-center justify-between gap-3 py-4">
                   <div className="min-w-0">
-                    <p className="font-semibold text-primary">{a.studentName}</p>
-                    <p className="truncate text-sm text-foreground/60">{a.tuitionTitle} · {formatDate(a.appliedAt)}</p>
+                    <p className="font-semibold text-primary">{x.studentName}</p>
+                    <p className="truncate text-sm text-foreground/60">{x.tuitionTitle} · {formatDate(x.appliedAt)}</p>
                   </div>
-                  <StatusBadge status={a.status} />
+                  <StatusBadge status={x.status} />
                 </li>
               ))}
             </ul>
@@ -66,13 +75,11 @@ export default function TutorOverview() {
             <p className="mt-3 text-sm text-foreground/60">Unlimited posts and a verified badge are active on your account.</p>
           ) : (
             <>
-              <p className="mt-3 text-sm text-foreground/60">{tuitions.length} of {limit} free posts used.</p>
+              <p className="mt-3 text-sm text-foreground/60">{tuitions.length} of {FREE_LIMIT} free posts used.</p>
               <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-muted">
-                <div className="h-full rounded-full bg-secondary" style={{ width: `${Math.min(100, (tuitions.length / limit) * 100)}%` }} />
+                <div className="h-full rounded-full bg-secondary" style={{ width: `${Math.min(100, (tuitions.length / FREE_LIMIT) * 100)}%` }} />
               </div>
-              <Link href="/pricing" className={cn(buttonVariants({ variant: "brand" }), "mt-5 h-11 w-full")}>
-                Upgrade for $15
-              </Link>
+              <Link href="/pricing" className={cn(buttonVariants({ variant: "brand" }), "mt-5 h-11 w-full")}>Upgrade for $15</Link>
             </>
           )}
         </div>

@@ -1,18 +1,24 @@
 "use client";
-import { useMemo } from "react";
 import Link from "next/link";
 import { ArrowRight, CircleCheck, ClipboardList, Crown, Hourglass } from "lucide-react";
 import { useDashboardUser } from "@/components/dashboard/user-context";
 import StatCard from "@/components/dashboard/StatCard";
 import PageHeader from "@/components/dashboard/PageHeader";
 import StatusBadge from "@/components/dashboard/StatusBadge";
+import { LoadError, PageSkeleton } from "@/components/dashboard/DataState";
 import { buttonVariants } from "@/components/ui/button";
-import { formatDate, seedStudentApplications } from "@/lib/dashboard-data";
+import { useApi } from "@/hooks/useApi";
+import { formatDate } from "@/lib/format";
+import type { Application } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export default function StudentOverview() {
   const user = useDashboardUser();
-  const apps = useMemo(() => seedStudentApplications(user), [user]);
+  const { data: apps, loading, error, reload } = useApi<Application[]>("/api/applications/mine");
+
+  if (loading) return <PageSkeleton />;
+  if (error || !apps) return <LoadError message={error} onRetry={reload} />;
+
   const accepted = apps.filter((a) => a.status === "accepted").length;
   const pending = apps.filter((a) => a.status === "pending").length;
 
@@ -35,26 +41,28 @@ export default function StudentOverview() {
               View all <ArrowRight size={14} />
             </Link>
           </div>
-          <ul className="divide-y divide-border">
-            {apps.slice(0, 4).map((a) => (
-              <li key={a._id} className="flex flex-wrap items-center justify-between gap-3 py-4">
-                <div className="min-w-0">
-                  <p className="truncate font-semibold text-primary">{a.tuitionTitle}</p>
-                  <p className="text-sm text-foreground/60">{a.tutorName} · applied {formatDate(a.appliedAt)}</p>
-                </div>
-                <StatusBadge status={a.status} />
-              </li>
-            ))}
-          </ul>
+          {apps.length === 0 ? (
+            <p className="py-8 text-center text-sm text-foreground/60">You have not applied to any tuition yet.</p>
+          ) : (
+            <ul className="divide-y divide-border">
+              {apps.slice(0, 4).map((a) => (
+                <li key={a._id} className="flex flex-wrap items-center justify-between gap-3 py-4">
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-primary">{a.tuitionTitle}</p>
+                    <p className="text-sm text-foreground/60">{a.tutorName} · applied {formatDate(a.appliedAt)}</p>
+                  </div>
+                  <StatusBadge status={a.status} />
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         <div className="space-y-6">
           <div className="rounded-3xl bg-primary p-6 text-primary-foreground">
             <h3 className="font-display text-2xl">Find your next tutor</h3>
             <p className="mt-2 text-sm text-primary-foreground/70">Browse approved tuitions by subject, class and mode.</p>
-            <Link href="/tuitions" className={cn(buttonVariants({ variant: "saffron" }), "mt-5 h-11 px-6")}>
-              Browse Tuitions
-            </Link>
+            <Link href="/tuitions" className={cn(buttonVariants({ variant: "saffron" }), "mt-5 h-11 px-6")}>Browse Tuitions</Link>
           </div>
           <div className="paper-card p-6">
             <h3 className="flex items-center gap-2 font-display text-xl text-primary">
@@ -66,9 +74,7 @@ export default function StudentOverview() {
                 : "Get priority booking and early access to new batches for $10."}
             </p>
             {user.plan !== "pro" && (
-              <Link href="/pricing" className={cn(buttonVariants({ variant: "outline" }), "mt-4 h-11 rounded-full px-6")}>
-                See Pro Plan
-              </Link>
+              <Link href="/pricing" className={cn(buttonVariants({ variant: "outline" }), "mt-4 h-11 rounded-full px-6")}>See Pro Plan</Link>
             )}
           </div>
         </div>

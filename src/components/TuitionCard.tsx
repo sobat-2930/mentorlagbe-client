@@ -1,18 +1,10 @@
 import Link from "next/link";
 import { MapPin, CalendarDays, Wifi, Building2 } from "lucide-react";
-import type { Tuition } from "@/lib/mock-tuitions";
+import type { Tuition } from "@/lib/types";
+import { subjectGradients } from "@/lib/tuitions";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-
-const gradients: Record<string, string> = {
-  Physics: "from-[#0f3d33] to-[#1d6b57]",
-  Math: "from-[#e4572e] to-[#f08a4b]",
-  IELTS: "from-[#2f80c8] to-[#56a6e8]",
-  Programming: "from-[#3b2a6b] to-[#6a4fc0]",
-  Chemistry: "from-[#2e9e6b] to-[#6ccf9c]",
-  English: "from-[#c48a14] to-[#f4b63f]",
-};
 
 export default function TuitionCard({ t }: { t: Tuition }) {
   return (
@@ -20,7 +12,7 @@ export default function TuitionCard({ t }: { t: Tuition }) {
       {t.bannerImage ? (
         <img src={t.bannerImage} alt={t.title} className="h-44 w-full object-cover" />
       ) : (
-        <div className={`relative h-44 w-full bg-gradient-to-br ${gradients[t.subject] || "from-primary to-primary"}`}>
+        <div className={`relative h-44 w-full bg-gradient-to-br ${subjectGradients[t.subject] || "from-primary to-primary"}`}>
           <span className="absolute bottom-3 left-4 font-display text-5xl font-semibold text-white/25">{t.subject}</span>
         </div>
       )}

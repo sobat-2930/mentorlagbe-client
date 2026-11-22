@@ -1,21 +1,29 @@
 "use client";
-import { useSyncExternalStore } from "react";
-import {
-  getServerUserSnapshot,
-  getUserSnapshot,
-  subscribeUser,
-  type AppUser,
-  type Role,
-} from "@/lib/demo-auth";
+import { useMemo } from "react";
+import { useSession } from "@/lib/auth-client";
+import type { AppUser, Role } from "@/lib/types";
 
 export type { AppUser, Role };
 
-// TODO (backend phase): eta BetterAuth useSession() diye replace hobe
 export function useUser() {
-  const user = useSyncExternalStore<AppUser | undefined>(
-    subscribeUser,
-    getUserSnapshot,
-    getServerUserSnapshot
+  const { data, isPending, refetch } = useSession();
+  const u = data?.user;
+
+  const user = useMemo<AppUser>(
+    () =>
+      u
+        ? {
+            name: u.name,
+            email: u.email,
+            image: u.image ?? undefined,
+            role: ((u.role as Role) || "student") as Role,
+            plan: u.plan === "pro" ? "pro" : "free",
+            phone: u.phone ?? undefined,
+            bio: u.bio ?? undefined,
+          }
+        : null,
+    [u]
   );
-  return { user: user ?? null, loading: user === undefined };
+
+  return { user, loading: isPending, refetch };
 }

@@ -2,26 +2,35 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { CalendarClock, Check, Mail, Phone, Users, X } from "lucide-react";
-import { useDashboardUser } from "@/components/dashboard/user-context";
 import PageHeader from "@/components/dashboard/PageHeader";
 import FilterTabs from "@/components/dashboard/FilterTabs";
 import StatusBadge from "@/components/dashboard/StatusBadge";
 import EmptyState from "@/components/dashboard/EmptyState";
+import { LoadError, PageSkeleton } from "@/components/dashboard/DataState";
 import { Button } from "@/components/ui/button";
-import { formatDate, seedApplicants, seedTutorTuitions, type AppStatus, type Application } from "@/lib/dashboard-data";
+import { useApi } from "@/hooks/useApi";
+import { api } from "@/lib/api";
+import { formatDate } from "@/lib/format";
+import type { AppStatus, Application } from "@/lib/types";
 
 export default function ApplicantsPage() {
-  const user = useDashboardUser();
-  const [apps, setApps] = useState<Application[]>(() => seedApplicants(seedTutorTuitions(user)));
+  const { data: apps, setData, loading, error, reload } = useApi<Application[]>("/api/tutor/applicants");
   const [filter, setFilter] = useState("all");
+
+  if (loading) return <PageSkeleton />;
+  if (error || !apps) return <LoadError message={error} onRetry={reload} />;
 
   const count = (s: string) => apps.filter((a) => a.status === s).length;
   const visible = filter === "all" ? apps : apps.filter((a) => a.status === filter);
 
-  const setStatus = (id: string, status: AppStatus) => {
-    // TODO (backend phase): PATCH /api/applications/:id { status }
-    setApps((prev) => prev.map((a) => (a._id === id ? { ...a, status } : a)));
-    toast.success(`Application ${status}`);
+  const setStatus = async (id: string, status: AppStatus) => {
+    try {
+      await api(`/api/tutor/applicants/${id}`, { method: "PATCH", body: { status } });
+      setData((prev) => (prev ? prev.map((a) => (a._id === id ? { ...a, status } : a)) : prev));
+      toast.success(`Application ${status}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not update application");
+    }
   };
 
   return (
@@ -73,12 +82,7 @@ export default function ApplicantsPage() {
               <p className="mt-4 text-sm italic leading-relaxed text-foreground/70">“{a.studentNote}”</p>
 
               <div className="mt-auto flex gap-3 pt-6">
-                <Button
-                  variant="brand"
-                  disabled={a.status === "accepted"}
-                  onClick={() => setStatus(a._id, "accepted")}
-                  className="h-11 flex-1"
-                >
+                <Button variant="brand" disabled={a.status === "accepted"} onClick={() => setStatus(a._id, "accepted")} className="h-11 flex-1">
                   <Check size={16} /> Accept
                 </Button>
                 <Button

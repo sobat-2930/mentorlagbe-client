@@ -2,9 +2,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Check } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useUser } from "@/hooks/useUser";
+import { api } from "@/lib/api";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -24,16 +25,30 @@ const plans = {
 export default function PricingPlans() {
   const router = useRouter();
   const { user } = useUser();
-  const [role, setRole] = useState<"student" | "tutor">("student");
+  const [picked, setPicked] = useState<"student" | "tutor" | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  // Logged in user er role onujayi default tab, na hole student
+  const role = picked ?? (user?.role === "tutor" ? "tutor" : "student");
   const p = plans[role];
 
-  const onSubscribe = () => {
+  const onSubscribe = async () => {
     if (!user) {
       toast.info("Please sign in to subscribe");
       return router.push("/sign-in?redirect=/pricing");
     }
-    // TODO (payment phase): POST /api/payments/checkout → Stripe Checkout URL e redirect
-    toast.info("Stripe Checkout will be connected in the payment phase");
+    if (user.role === "admin") return toast.info("Admins do not need a plan");
+    if (user.plan === "pro") return toast.info("You are already on the Pro plan");
+    if (user.role !== role) return toast.info(`This plan is for ${role}s. Switch to the ${user.role} tab.`);
+
+    setLoading(true);
+    try {
+      const { url } = await api<{ url: string }>("/api/payments/checkout", { method: "POST", body: {} });
+      window.location.href = url; // Stripe Checkout
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not start checkout");
+      setLoading(false);
+    }
   };
 
   return (
@@ -45,7 +60,7 @@ export default function PricingPlans() {
               key={r}
               role="tab"
               aria-selected={role === r}
-              onClick={() => setRole(r)}
+              onClick={() => setPicked(r)}
               className={cn(
                 "rounded-full px-6 py-2 text-sm font-bold capitalize transition",
                 role === r ? "bg-primary text-primary-foreground" : "text-foreground/60"
@@ -66,8 +81,11 @@ export default function PricingPlans() {
               <li key={f} className="flex gap-3"><Check size={18} className="text-success" />{f}</li>
             ))}
           </ul>
-          <Link href="/sign-up" className={cn(buttonVariants({ variant: "outline" }), "mt-8 h-12 rounded-full")}>
-            Get Started
+          <Link
+            href={user ? "/dashboard" : "/sign-up"}
+            className={cn(buttonVariants({ variant: "outline" }), "mt-auto h-12 rounded-full")}
+          >
+            {user ? "Go to Dashboard" : "Get Started"}
           </Link>
         </div>
 
@@ -84,8 +102,13 @@ export default function PricingPlans() {
               <li key={f} className="flex gap-3"><Check size={18} className="text-secondary" />{f}</li>
             ))}
           </ul>
-          <Button variant="saffron" onClick={onSubscribe} className="mt-8 h-12">
-            Subscribe with Stripe
+          <Button
+            variant="saffron"
+            onClick={onSubscribe}
+            disabled={loading || user?.plan === "pro"}
+            className="mt-auto h-12"
+          >
+            {loading ? <Loader2 className="animate-spin" /> : user?.plan === "pro" ? "You are on Pro" : "Subscribe with Stripe"}
           </Button>
         </div>
       </div>

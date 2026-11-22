@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -8,8 +8,10 @@ import AuthShell from "@/components/auth/AuthShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { signUp } from "@/lib/auth-client";
+import { clearJwt } from "@/lib/api";
+import { useUser } from "@/hooks/useUser";
 import { cn } from "@/lib/utils";
-import { createDemoUser, setDemoUser } from "@/lib/demo-auth";
 
 type Role = "student" | "tutor";
 type Errors = Partial<Record<"name" | "email" | "password", string>>;
@@ -21,10 +23,15 @@ const roles = [
 
 export default function SignUpPage() {
   const router = useRouter();
+  const { user, loading: sessionLoading } = useUser();
   const [form, setForm] = useState({ name: "", email: "", password: "", role: "student" as Role });
   const [errors, setErrors] = useState<Errors>({});
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!sessionLoading && user) router.replace("/dashboard");
+  }, [user, sessionLoading, router]);
 
   const validate = () => {
     const e: Errors = {};
@@ -37,17 +44,25 @@ export default function SignUpPage() {
     return Object.keys(e).length === 0;
   };
 
-const onSubmit = async (ev: React.FormEvent) => {
-  ev.preventDefault();
-  if (!validate()) return toast.error("Please fix the highlighted fields");
-  setLoading(true);
-  // TODO (backend phase): BetterAuth signUp.email({ name, email, password, role })
-  await new Promise((r) => setTimeout(r, 700));
-  setDemoUser(createDemoUser({ email: form.email, name: form.name, role: form.role }));
-  setLoading(false);
-  toast.success("Account created! Welcome to MentorLagbe");
-  router.push("/dashboard");
-};
+  const onSubmit = async (ev: React.FormEvent) => {
+    ev.preventDefault();
+    if (!validate()) return toast.error("Please fix the highlighted fields");
+
+    setLoading(true);
+    const { error } = await signUp.email({
+      name: form.name.trim(),
+      email: form.email,
+      password: form.password,
+      role: form.role,
+    });
+    if (error) {
+      setLoading(false);
+      return toast.error(error.message || "Sign up failed");
+    }
+    clearJwt();
+    toast.success("Account created! Welcome to MentorLagbe");
+    // session ready hole upore er effect /dashboard e pathabe
+  };
 
   return (
     <AuthShell title="Create account" subtitle="Pick your role and get started in a minute.">

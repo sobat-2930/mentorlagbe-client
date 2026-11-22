@@ -1,9 +1,10 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { CheckCircle2, Info, Loader2, LogIn } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
+import { api, ApiError } from "@/lib/api";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,12 +15,30 @@ type Errors = Partial<Record<"phone" | "preferredSchedule" | "studentNote", stri
 
 export default function ApplyForm({ tuitionId, tuitionTitle }: { tuitionId: string; tuitionTitle: string }) {
   const { user, loading: sessionLoading } = useUser();
+  const isStudent = user?.role === "student";
+
   const [form, setForm] = useState({ phone: "", preferredSchedule: "", studentNote: "" });
   const [errors, setErrors] = useState<Errors>({});
   const [loading, setLoading] = useState(false);
   const [applied, setApplied] = useState(false);
+  const [checking, setChecking] = useState(true);
 
-  if (sessionLoading) return <div className="h-40 animate-pulse rounded-2xl bg-muted" />;
+  // Student age apply korechhe kina server theke check (duplicate block)
+  useEffect(() => {
+    if (!isStudent) return;
+    let cancelled = false;
+    api<{ applied: boolean }>(`/api/applications/check/${tuitionId}`)
+      .then((r) => !cancelled && setApplied(r.applied))
+      .catch(() => {})
+      .finally(() => !cancelled && setChecking(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [isStudent, tuitionId]);
+
+  if (sessionLoading || (isStudent && checking)) {
+    return <div className="h-40 animate-pulse rounded-2xl bg-muted" />;
+  }
 
   // 1) Logged out
   if (!user) {
@@ -34,8 +53,8 @@ export default function ApplyForm({ tuitionId, tuitionTitle }: { tuitionId: stri
     );
   }
 
-  // 2) Tutor / Admin: button disabled + notice
-  if (user.role !== "student") {
+  // 2) Tutor / Admin: disabled + notice
+  if (!isStudent) {
     return (
       <div className="space-y-3">
         <Button disabled className="h-12 w-full rounded-full">Apply Now</Button>
@@ -47,13 +66,13 @@ export default function ApplyForm({ tuitionId, tuitionTitle }: { tuitionId: stri
     );
   }
 
-  // 3) Already applied (duplicate block, backend e o check hobe)
+  // 3) Already applied
   if (applied) {
     return (
       <div className="rounded-2xl bg-success/10 p-5 text-center">
         <CheckCircle2 className="mx-auto text-success" size={32} />
         <p className="mt-3 font-display text-lg text-primary">Application submitted</p>
-        <p className="mt-1 text-xs text-foreground/60">You can track the status from My Applications.</p>
+        <p className="mt-1 text-xs text-foreground/60">Track the status from My Applications in your dashboard.</p>
         <Button disabled className="mt-4 h-11 w-full rounded-full">Already Applied</Button>
       </div>
     );
@@ -73,11 +92,24 @@ export default function ApplyForm({ tuitionId, tuitionTitle }: { tuitionId: stri
     ev.preventDefault();
     if (!validate()) return toast.error("Please fix the highlighted fields");
     setLoading(true);
-    // TODO (backend phase): POST /api/applications { tuitionId, phone, preferredSchedule, studentNote }
-    await new Promise((r) => setTimeout(r, 900));
-    setLoading(false);
-    setApplied(true);
-    toast.success(`Applied to “${tuitionTitle}” (demo)`);
+    try {
+      await api("/api/applications", {
+        method: "POST",
+        body: {
+          tuitionId,
+          phone: form.phone.trim(),
+          preferredSchedule: form.preferredSchedule.trim(),
+          studentNote: form.studentNote.trim(),
+        },
+      });
+      setApplied(true);
+      toast.success(`Applied to “${tuitionTitle}”`);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 409) setApplied(true);
+      toast.error(err instanceof Error ? err.message : "Could not submit application");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

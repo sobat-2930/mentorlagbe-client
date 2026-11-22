@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -8,16 +8,29 @@ import AuthShell from "@/components/auth/AuthShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createDemoUser, setDemoUser } from "@/lib/demo-auth";
+import { signIn } from "@/lib/auth-client";
+import { clearJwt } from "@/lib/api";
+import { useUser } from "@/hooks/useUser";
 
 type Errors = Partial<Record<"email" | "password", string>>;
 
+function destination() {
+  const r = new URLSearchParams(window.location.search).get("redirect");
+  return r && r.startsWith("/") && !r.startsWith("//") ? r : "/dashboard";
+}
+
 export default function SignInPage() {
   const router = useRouter();
+  const { user, loading: sessionLoading } = useUser();
   const [form, setForm] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState<Errors>({});
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Session ready hole (login korar por ba already logged in) redirect hoy
+  useEffect(() => {
+    if (!sessionLoading && user) router.replace(destination());
+  }, [user, sessionLoading, router]);
 
   const validate = () => {
     const e: Errors = {};
@@ -29,25 +42,23 @@ export default function SignInPage() {
     return Object.keys(e).length === 0;
   };
 
- const onSubmit = async (ev: React.FormEvent) => {
-  ev.preventDefault();
-  if (!validate()) return toast.error("Please fix the highlighted fields");
-  setLoading(true);
-  // TODO (backend phase): BetterAuth signIn.email({ email, password })
-  await new Promise((r) => setTimeout(r, 700));
-  setDemoUser(createDemoUser({ email: form.email }));
-  setLoading(false);
-  toast.success("Welcome back!");
-  const redirect = new URLSearchParams(window.location.search).get("redirect");
-  router.push(redirect && redirect.startsWith("/") ? redirect : "/dashboard");
-};
+  const onSubmit = async (ev: React.FormEvent) => {
+    ev.preventDefault();
+    if (!validate()) return toast.error("Please fix the highlighted fields");
+
+    setLoading(true);
+    const { error } = await signIn.email({ email: form.email, password: form.password });
+    if (error) {
+      setLoading(false);
+      return toast.error(error.message || "Invalid email or password");
+    }
+    clearJwt();
+    toast.success("Welcome back!");
+    // loading true-i thake, session ready hole upore er effect redirect kore
+  };
 
   return (
     <AuthShell title="Welcome back" subtitle="Sign in to continue to your dashboard.">
-      <div className="mb-6 rounded-2xl border border-dashed border-primary/30 bg-muted p-4 text-xs leading-relaxed text-foreground/70">
-  <p className="mb-1 font-bold text-primary">Demo accounts (any password, 6+ chars)</p>
-  <p>student@demo.com · tutor@demo.com · protutor@demo.com · admin@demo.com</p>
-</div>
       <form onSubmit={onSubmit} className="space-y-5" noValidate>
         <div className="space-y-1.5">
           <Label htmlFor="email">Email</Label>

@@ -1,11 +1,15 @@
 import Link from "next/link";
+import { BookX } from "lucide-react";
 import TuitionCard from "@/components/TuitionCard";
-import { mockTuitions } from "@/lib/mock-tuitions";
+import { getLatestTuitions } from "@/lib/tuitions";
+import type { Tuition } from "@/lib/types";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export default function FeaturedTuitions() {
-  const tuitions = mockTuitions.slice(0, 6);
+// MongoDB theke 6 ta latest approved + active tuition
+export default async function FeaturedTuitions() {
+  const tuitions = await getLatestTuitions().catch((): Tuition[] => []);
+
   return (
     <section className="section bg-muted/60">
       <div className="container-x">
@@ -17,9 +21,17 @@ export default function FeaturedTuitions() {
           </div>
           <Link href="/tuitions" className={cn(buttonVariants({ variant: "brand" }), "h-12 px-7")}>Browse All →</Link>
         </div>
-        <div className="mt-12 grid gap-7 sm:grid-cols-2 lg:grid-cols-3">
-          {tuitions.map((t) => <TuitionCard key={t._id} t={t} />)}
-        </div>
+
+        {tuitions.length === 0 ? (
+          <div className="mt-12 text-center">
+            <BookX className="mx-auto text-foreground/30" size={48} />
+            <p className="mt-3 text-foreground/60">No tuitions available right now. Please check back soon.</p>
+          </div>
+        ) : (
+          <div className="mt-12 grid gap-7 sm:grid-cols-2 lg:grid-cols-3">
+            {tuitions.map((t) => <TuitionCard key={t._id} t={t} />)}
+          </div>
+        )}
       </div>
     </section>
   );

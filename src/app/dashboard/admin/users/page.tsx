@@ -2,23 +2,35 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Search, Users } from "lucide-react";
+import { useDashboardUser } from "@/components/dashboard/user-context";
 import PageHeader from "@/components/dashboard/PageHeader";
 import StatusBadge from "@/components/dashboard/StatusBadge";
 import EmptyState from "@/components/dashboard/EmptyState";
-import { formatDate, mockUsers, type ManagedUser } from "@/lib/dashboard-data";
-import type { Role } from "@/lib/demo-auth";
+import { LoadError, PageSkeleton } from "@/components/dashboard/DataState";
+import { useApi } from "@/hooks/useApi";
+import { api } from "@/lib/api";
+import { formatDate } from "@/lib/format";
+import type { ManagedUser, Role } from "@/lib/types";
 
 export default function AdminUsersPage() {
-  const [users, setUsers] = useState<ManagedUser[]>(mockUsers);
+  const me = useDashboardUser();
+  const { data: users, setData, loading, error, reload } = useApi<ManagedUser[]>("/api/admin/users");
   const [query, setQuery] = useState("");
+
+  if (loading) return <PageSkeleton />;
+  if (error || !users) return <LoadError message={error} onRetry={reload} />;
 
   const q = query.trim().toLowerCase();
   const visible = q ? users.filter((u) => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)) : users;
 
-  const changeRole = (id: string, role: Role) => {
-    // TODO (backend phase): PATCH /api/admin/users/:id/role (verifyAdmin)
-    setUsers((prev) => prev.map((u) => (u._id === id ? { ...u, role } : u)));
-    toast.success(`Role updated to ${role}`);
+  const changeRole = async (id: string, role: Role) => {
+    try {
+      await api(`/api/admin/users/${id}/role`, { method: "PATCH", body: { role } });
+      setData((prev) => (prev ? prev.map((u) => (u._id === id ? { ...u, role } : u)) : prev));
+      toast.success(`Role updated to ${role}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not update role");
+    }
   };
 
   return (
@@ -67,9 +79,11 @@ export default function AdminUsersPage() {
                   <td className="px-5 py-4">
                     <select
                       value={u.role}
+                      disabled={u.email === me.email}
+                      title={u.email === me.email ? "You cannot change your own role" : undefined}
                       onChange={(e) => changeRole(u._id, e.target.value as Role)}
                       aria-label={`Role for ${u.name}`}
-                      className="h-10 rounded-xl border border-input bg-white px-3 text-sm font-semibold capitalize outline-none focus:border-primary"
+                      className="h-10 rounded-xl border border-input bg-white px-3 text-sm font-semibold capitalize outline-none focus:border-primary disabled:opacity-50"
                     >
                       <option value="student">student</option>
                       <option value="tutor">tutor</option>

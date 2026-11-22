@@ -2,7 +2,8 @@ import {
   BookOpen, CirclePlus, CircleUserRound, ClipboardList, LayoutDashboard,
   ListChecks, Receipt, Users, type LucideIcon,
 } from "lucide-react";
-import type { Role } from "@/lib/demo-auth";
+// import type { Role } from "@/lib/demo-auth";
+import type { Role } from "@/lib/types";
 
 export type NavItem = { href: string; label: string; icon: LucideIcon };
 

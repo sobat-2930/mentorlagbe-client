@@ -5,7 +5,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { Crown, GraduationCap, Globe, LoaderCircle, LogOut, PanelLeft, X } from "lucide-react";
 import { toast } from "sonner";
 import { useUser } from "@/hooks/useUser";
-import { setDemoUser } from "@/lib/demo-auth";
+import { signOut } from "@/lib/auth-client";
+import { clearJwt } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { navByRole } from "./nav";
 import { DashboardUserProvider } from "./user-context";
@@ -23,7 +24,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const segment = pathname.split("/")[2];
   const wrongRole = !!user && ROLE_SEGMENTS.includes(segment) && segment !== user.role;
 
-  // session load howar por-i redirect, tai reload e login e fire jabe na
+  // Session load howar por-i redirect hoy, tai reload e login e fire jay na
   useEffect(() => {
     if (loading || signingOut.current) return;
     if (!user) router.replace(`/sign-in?redirect=${encodeURIComponent(pathname)}`);
@@ -40,7 +41,9 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
   const items = navByRole[user.role];
   const title = items.find((i) => i.href === pathname)?.label ?? "Dashboard";
-  const avatar = user.image || `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(user.name)}&backgroundColor=f4b63f&textColor=2a1b00`;
+  const avatar =
+    user.image ||
+    `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(user.name)}&backgroundColor=f4b63f&textColor=2a1b00`;
   const hide = collapsed ? "lg:hidden" : "";
 
   const toggleSidebar = () => {
@@ -48,9 +51,10 @@ export default function DashboardShell({ children }: { children: React.ReactNode
     else setMobileOpen((o) => !o);
   };
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
     signingOut.current = true;
-    setDemoUser(null);
+    await signOut();
+    clearJwt();
     toast.success("Signed out successfully");
     router.push("/");
   };
@@ -58,9 +62,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   return (
     <DashboardUserProvider value={user}>
       <div className="min-h-screen bg-muted/40">
-        {mobileOpen && (
-          <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setMobileOpen(false)} />
-        )}
+        {mobileOpen && <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setMobileOpen(false)} />}
 
         {/* Sidebar */}
         <aside

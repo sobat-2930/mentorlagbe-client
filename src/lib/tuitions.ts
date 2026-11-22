@@ -1,4 +1,23 @@
-import { mockTuitions, type Tuition } from "./mock-tuitions";
+import type { PaginatedTuitions, Tuition } from "./types";
+
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
+export const filterOptions = {
+  subjects: ["Math", "Physics", "Chemistry", "Biology", "English", "IELTS", "Programming", "ICT"],
+  classLevels: ["SSC", "HSC", "Admission", "University", "Any"],
+  modes: ["Online", "Offline"],
+};
+
+export const subjectGradients: Record<string, string> = {
+  Physics: "from-[#0f3d33] to-[#1d6b57]",
+  Math: "from-[#e4572e] to-[#f08a4b]",
+  IELTS: "from-[#2f80c8] to-[#56a6e8]",
+  Programming: "from-[#3b2a6b] to-[#6a4fc0]",
+  Chemistry: "from-[#2e9e6b] to-[#6ccf9c]",
+  English: "from-[#c48a14] to-[#f4b63f]",
+  Biology: "from-[#1f7a5a] to-[#8fd694]",
+  ICT: "from-[#374151] to-[#6b7280]",
+};
 
 export type TuitionQuery = {
   search?: string;
@@ -9,38 +28,30 @@ export type TuitionQuery = {
   limit?: number;
 };
 
-export const filterOptions = {
-  subjects: ["Math", "Physics", "Chemistry", "Biology", "English", "IELTS", "Programming", "ICT"],
-  classLevels: ["SSC", "HSC", "Admission", "University", "Any"],
-  modes: ["Online", "Offline"],
-};
+// Server-side search, filter ar pagination: sob MongoDB te hoy
+export async function getTuitions(q: TuitionQuery = {}): Promise<PaginatedTuitions> {
+  const params = new URLSearchParams();
+  (["search", "subject", "classLevel", "mode"] as const).forEach((k) => {
+    const v = q[k];
+    if (v) params.set(k, v);
+  });
+  if (q.page) params.set("page", String(q.page));
+  params.set("limit", String(q.limit ?? 6));
 
-// TODO (backend phase): eta fetch(`${API}/api/tuitions?search=..&page=..`) diye replace hobe
-export async function getTuitions(q: TuitionQuery = {}) {
-  const limit = q.limit ?? 6;
-  const term = q.search?.trim().toLowerCase();
+  const res = await fetch(`${API}/api/tuitions?${params.toString()}`, { cache: "no-store" });
+  if (!res.ok) throw new Error("Could not load tuitions. Please try again.");
+  return res.json();
+}
 
-  let list = mockTuitions.filter((t) => t.approvalStatus === "approved" && t.isActive);
-
-  if (term) {
-    list = list.filter(
-      (t) => t.title.toLowerCase().includes(term) || t.subject.toLowerCase().includes(term)
-    );
-  }
-  if (q.subject && q.subject !== "all") list = list.filter((t) => t.subject === q.subject);
-  if (q.classLevel && q.classLevel !== "all") list = list.filter((t) => t.classLevel === q.classLevel);
-  if (q.mode && q.mode !== "all") list = list.filter((t) => t.mode === q.mode);
-
-  list = [...list].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-
-  const total = list.length;
-  const totalPages = Math.max(1, Math.ceil(total / limit));
-  const page = Math.min(Math.max(1, q.page || 1), totalPages);
-
-  return { items: list.slice((page - 1) * limit, page * limit), total, page, totalPages };
+export async function getLatestTuitions(): Promise<Tuition[]> {
+  const res = await fetch(`${API}/api/tuitions/latest`, { cache: "no-store" });
+  if (!res.ok) throw new Error("Could not load tuitions");
+  return res.json();
 }
 
 export async function getTuitionById(id: string): Promise<Tuition | null> {
-  const t = mockTuitions.find((x) => x._id === id);
-  return t && t.approvalStatus === "approved" && t.isActive ? t : null;
+  const res = await fetch(`${API}/api/tuitions/${encodeURIComponent(id)}`, { cache: "no-store" });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error("Could not load tuition");
+  return res.json();
 }
