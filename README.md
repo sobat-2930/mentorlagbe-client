@@ -19,9 +19,9 @@ MentorLagbe connects **Tutors** who offer tuition batches or 1-on-1 mentorship w
 Students and parents can find verified tutors in one place, and tutors get a structured platform to showcase their batches and manage enrollments.
 
 ## 🔗 Live URL
-**https://YOUR-CLIENT.vercel.app**
+**https://mentorlagbe-client-lw3ikbgn1-sobat1.vercel.app**
 
-Server API: https://YOUR-SERVER.vercel.app
+Server API: https://mentorlagbe-server-ruby.vercel.app
 
 ## 🔑 Admin Credentials
 | Role | Email | Password |
@@ -57,5 +57,6 @@ Server API: https://YOUR-SERVER.vercel.app
 | `sonner` | Toast notifications |
 
 ## 🛠️ Repositories
-- Client: 
-- Server: 
+- Client: https://github.com/sobat-2930/mentorlagbe-client
+
+- Server: https://github.com/sobat-2930/mentorlagbe-server
