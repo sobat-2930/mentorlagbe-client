@@ -19,7 +19,7 @@ MentorLagbe connects **Tutors** who offer tuition batches or 1-on-1 mentorship w
 Students and parents can find verified tutors in one place, and tutors get a structured platform to showcase their batches and manage enrollments.
 
 ## 🔗 Live URL
-**https://mentorlagbe-client-lw3ikbgn1-sobat1.vercel.app**
+**https://mentorlagbe-client-ten.vercel.app**
 
 Server API: https://mentorlagbe-server-ruby.vercel.app
 
